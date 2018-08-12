@@ -1,22 +1,30 @@
 
-var convexHull = (pos, scale, center, rotation, verticies, indicies) => {
+var hulls;
+var crateImage;
+
+var convexHull = (pos, scale_, rotation, center, verticies, indicies) => {
   this.pos = pos || createVector(0, 0);
-  this.scale = scale || 1;
+  this.scale_ = scale_ || 1;
   this.rotation = rotation || 0;
   this.center = center || createVector(0, 0);
   this.verticies = verticies ||
-      [
-        createVector(-1, -1),
-        createVector(1, -1),
-        createVector(1, 1),
-        createVector(-1, 1)
-      ];
+    [
+      createVector(-1, -1),
+      createVector(1, -1),
+      createVector(1, 1),
+      createVector(-1, 1)
+    ];
   this.indicies = indicies || [0, 1, 2, 0, 3, 2];
 
-  const pointX = i => this.verticies[i].x * this.scale + this.pos.x;
-  const pointY = i => this.verticies[i].y * this.scale + this.pos.y;
+  const pointX = i => this.verticies[i].x * this.scale_ + this.pos.x;
+  const pointY = i => this.verticies[i].y * this.scale_ + this.pos.y;
   return {
     position: () => this.pos,
+    rotation: () => this.rotation,
+    scale: () => this.scale_,
+    draw: () => {
+      image(crateImage, -1, -1, 2, 2);
+    },
     aabb: (tolerance = 0.2) => {
       let minX = pointX(0);
       let maxX = minX;
@@ -39,21 +47,20 @@ var convexHull = (pos, scale, center, rotation, verticies, indicies) => {
         observer(
           pointX(this.indicies[i]),
           pointY(this.indicies[i]),
-          pointX(this.indicies[i+1]),
-          pointY(this.indicies[i+1]),
-          pointX(this.indicies[i+2]),
-          pointY(this.indicies[i+2])
+          pointX(this.indicies[i + 1]),
+          pointY(this.indicies[i + 1]),
+          pointX(this.indicies[i + 2]),
+          pointY(this.indicies[i + 2])
         );
       }
     }
   };
 };
 
-var hulls;
-
 function setup() {
   createCanvas(480, 480);
-  hulls = [convexHull(createVector(100, 100), 50)];
+  hulls = [convexHull(createVector(200, 200), 100)];
+  crateImage = loadImage("crate.jpg");
 }
 
 var showHull = true;
@@ -62,7 +69,10 @@ function draw() {
   background(200);
   hulls.forEach(h => {
     push();
-    //h.draw();
+    rotate(this.rotation);
+    translate(this.pos.x, this.pos.y);
+    scale(this.scale_);
+    h.draw();
     pop();
 
     push();
