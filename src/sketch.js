@@ -20,7 +20,7 @@ var convexHull = (pos, scale_, rotation, center, verticies, indicies) => {
   const worldY = i => ((this.verticies[i].x * this.scale_ * Math.sin(this.rotation)) + (this.verticies[i].y * this.scale_ * Math.cos(this.rotation))) + this.pos.y;
   return {
     position: () => this.pos,
-    rotation: () => this.rotation,
+    rotation: (r = this.rotation) => this.rotation = r,
     scale: () => this.scale_,
     draw: () => {
       image(crateImage, -1, -1, 2, 2);
@@ -59,7 +59,7 @@ var convexHull = (pos, scale_, rotation, center, verticies, indicies) => {
 
 function setup() {
   createCanvas(480, 480);
-  hulls = [convexHull(createVector(240, 240), 50, PI / 1)];
+  hulls = [convexHull(createVector(240, 240), 50, PI / 6)];
   crateImage = loadImage("crate.jpg");
 }
 
@@ -69,6 +69,9 @@ var showAABB = true;
 function draw() {
   background(200);
   hulls.forEach(h => {
+
+    var s= h.rotation(h.rotation()+0.01)
+
     if (showModel) {
       push();
       translate(this.pos.x, this.pos.y);
