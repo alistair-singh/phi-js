@@ -1,31 +1,28 @@
 
 var convexHull = (pos, scale, center, rotation, verticies, indicies) => {
-  var $this = {
-    _pos: pos || createVector(0, 0),
-    _scale: scale || 1,
-    _rotation: rotation || 0,
-    _center: center || createVector(0, 0),
-    _verticies: verticies ||
+  this.pos = pos || createVector(0, 0);
+  this.scale = scale || 1;
+  this.rotation = rotation || 0;
+  this.center = center || createVector(0, 0);
+  this.verticies = verticies ||
       [
         createVector(-1, -1),
         createVector(1, -1),
         createVector(1, 1),
         createVector(-1, 1)
-      ],
-    _indicies: indicies || [0, 1, 2, 0, 3, 2]
-  };
+      ];
+  this.indicies = indicies || [0, 1, 2, 0, 3, 2];
 
-
-  var pointX = (i) => $this._verticies[i].x * $this._scale + $this._pos.x;
-  var pointY = (i) => $this._verticies[i].y * $this._scale + $this._pos.y;
+  const pointX = i => this.verticies[i].x * this.scale + this.pos.x;
+  const pointY = i => this.verticies[i].y * this.scale + this.pos.y;
   return {
-    position: () => $this._pos,
+    position: () => this.pos,
     aabb: (tolerance = 0.2) => {
-      var minX = pointX(0);
-      var maxX = minX;
-      var minY = pointY(0);
-      var maxY = minY;
-      for (let i = 1; i < $this._verticies.length; i++) {
+      let minX = pointX(0);
+      let maxX = minX;
+      let minY = pointY(0);
+      let maxY = minY;
+      for (let i = 1; i < this.verticies.length; i++) {
         const x = pointX(i);
         const y = pointY(i);
         minX = Math.min(minX, x);
@@ -38,14 +35,14 @@ var convexHull = (pos, scale, center, rotation, verticies, indicies) => {
         createVector(maxX + tolerance, maxY + tolerance)];
     },
     triangles: (observer) => {
-      for (let i = 0; i < $this._indicies.length - 2; i += 3) {
+      for (let i = 0; i < this.indicies.length - 2; i += 3) {
         observer(
-          pointX($this._indicies[i]),
-          pointY($this._indicies[i]),
-          pointX($this._indicies[i+1]),
-          pointY($this._indicies[i+1]),
-          pointX($this._indicies[i+2]),
-          pointY($this._indicies[i+2])
+          pointX(this.indicies[i]),
+          pointY(this.indicies[i]),
+          pointX(this.indicies[i+1]),
+          pointY(this.indicies[i+1]),
+          pointX(this.indicies[i+2]),
+          pointY(this.indicies[i+2])
         );
       }
     }
