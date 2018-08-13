@@ -51,26 +51,54 @@ function ConvexHull(pos, scale, rotation, center, verticies, indicies) {
       );
     };
   };
-
-  return this;
 }
 
 function setup() {
   createCanvas(480, 480);
-  hulls = [new ConvexHull(createVector(240, 240), 50, PI / 6)];
+  hulls = [
+    new ConvexHull(createVector(240, 240), 50, PI / 6),
+    new ConvexHull(createVector(120, 120), 25, PI / 3),
+    new ConvexHull(createVector(331, 170), 25, PI / 4),
+    new ConvexHull(createVector(332, 260), 25, PI / 9)];
   crateImage = loadImage("crate.jpg");
 }
 
 var showModel = true;
 var showHull = true;
 var showAABB = true;
+var showAABBTree = true;
 function draw() {
+  function mergeAABB(aabb1, aabb2) {
+    const minX = Math.min(aabb1[0].x, aabb2[0].x);
+    const minY = Math.min(aabb1[0].y, aabb2[0].y);
+    const maxX = Math.max(aabb1[1].x, aabb2[1].x);
+    const maxY = Math.max(aabb1[1].y, aabb2[1].y);
+    return [
+      createVector(minX, minY),
+      createVector(maxX, maxY)];
+  };
+  function drawAABB(aabb) {
+    line(aabb[0].x, aabb[0].y, aabb[0].x, aabb[1].y);
+    line(aabb[0].x, aabb[0].y, aabb[1].x, aabb[0].y);
+
+    line(aabb[1].x, aabb[0].y, aabb[1].x, aabb[1].y);
+    line(aabb[0].x, aabb[1].y, aabb[1].x, aabb[1].y);
+  };
+
   background(200);
-  hulls.forEach(h => {
 
-    var s = h.rotation(h.rotation() + 0.01)
+  hulls.sort((h1, h2) => {
+    const aabb1 = h1.aabb(4);
+    const aabb2 = h2.aabb(4);
 
-    if (showModel) {
+    if((aabb1[0].x < aabb2[0].x) || (aabb1[0].y < aabb2[0].y)) return -1;
+    if((aabb1[1].x > aabb2[1].x) || (aabb1[1].y > aabb2[1].y)) return 1;
+    return 0;
+  });
+
+  if (showModel) {
+    hulls.forEach(h => {
+      var s = h.rotation(h.rotation() + 0.01)
       push();
       const pos = h.position();
       translate(pos.x, pos.y);
@@ -78,8 +106,10 @@ function draw() {
       scale(h.scale());
       h.draw();
       pop();
-    }
+    });
+  };
 
+  hulls.forEach(h => {
     if (showHull) {
       push();
       stroke(0, 255, 0);
@@ -94,12 +124,33 @@ function draw() {
       push();
       const aabb = h.aabb(2);
       stroke(255, 0, 0);
-      line(aabb[0].x, aabb[0].y, aabb[0].x, aabb[1].y);
-      line(aabb[0].x, aabb[0].y, aabb[1].x, aabb[0].y);
-
-      line(aabb[1].x, aabb[0].y, aabb[1].x, aabb[1].y);
-      line(aabb[0].x, aabb[1].y, aabb[1].x, aabb[1].y);
+      drawAABB(aabb);
       pop();
     }
   });
+
+  if (showAABBTree) {
+    let i = 0;
+    function drawTree(first, last) {
+
+
+      const diff = last - first;
+      if (diff < 1) return;
+
+      const aabb = mergeAABB(hulls[first].aabb(4), hulls[last].aabb(4));
+      drawAABB(aabb);
+      console.log(i++, aabb[0].x, aabb[0].y, aabb[1].x, aabb[1].y);
+
+      const half = first + Math.floor((diff) / 2);
+      if (half == last) return;
+      drawTree(first, half);
+      
+      if (half == first) return;
+      drawTree(half, last);
+    }
+    drawTree(0, hulls.length - 1);
+
+    // const aabb = mergeAABB(hulls[0].aabb(4), hulls[hulls.length - 1].aabb(4));
+    // drawAABB(aabb);
+  }
 }
