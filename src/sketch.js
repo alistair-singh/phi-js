@@ -2,64 +2,62 @@
 var hulls;
 var crateImage;
 
-var convexHull = (pos, scale_, rotation, center, verticies, indicies) => {
-  this.pos = pos || createVector(0, 0);
-  this.scale_ = scale_ || 1;
-  this.rotation = rotation || 0;
-  this.center = center || createVector(0, 0);
-  this.verticies = verticies ||
+function ConvexHull(pos, scale, rotation, center, verticies, indicies) {
+  this._pos = pos || createVector(0, 0);
+  this._scale = scale || 1;
+  this._rotation = rotation || 1;
+  this._center = center || createVector(0, 0);
+  this._verticies = verticies ||
     [
       createVector(-1, -1),
       createVector(1, -1),
       createVector(1, 1),
       createVector(-1, 1)
     ];
-  this.indicies = indicies || [0, 1, 2, 0, 3, 2];
+  this._indicies = indicies || [0, 1, 2, 0, 3, 2];
 
-  const worldX = i => ((this.verticies[i].x * this.scale_ * Math.cos(this.rotation)) - (this.verticies[i].y * this.scale_ * Math.sin(this.rotation))) + this.pos.x;
-  const worldY = i => ((this.verticies[i].x * this.scale_ * Math.sin(this.rotation)) + (this.verticies[i].y * this.scale_ * Math.cos(this.rotation))) + this.pos.y;
-  return {
-    position: () => this.pos,
-    rotation: (r = this.rotation) => this.rotation = r,
-    scale: () => this.scale_,
-    draw: () => {
-      image(crateImage, -1, -1, 2, 2);
-    },
-    aabb: (tolerance = 0.2) => {
-      let minX = worldX(0);
-      let maxX = minX;
-      let minY = worldY(0);
-      let maxY = minY;
-      for (let i = 1; i < this.verticies.length; i++) {
-        const x = worldX(i);
-        const y = worldY(i);
-        minX = Math.min(minX, x);
-        minY = Math.min(minY, y);
-        maxX = Math.max(maxX, x);
-        maxY = Math.max(maxY, y);
-      }
-      return [
-        createVector(minX - tolerance, minY - tolerance),
-        createVector(maxX + tolerance, maxY + tolerance)];
-    },
-    triangles: (observer) => {
-      for (let i = 0; i < this.indicies.length - 2; i += 3) {
-        observer(
-          worldX(this.indicies[i]),
-          worldY(this.indicies[i]),
-          worldX(this.indicies[i + 1]),
-          worldY(this.indicies[i + 1]),
-          worldX(this.indicies[i + 2]),
-          worldY(this.indicies[i + 2])
-        );
-      }
+  const worldX = i => ((this._verticies[i].x * this._scale * Math.cos(this._rotation)) - (this._verticies[i].y * this._scale * Math.sin(this._rotation))) + this._pos.x;
+  const worldY = i => ((this._verticies[i].x * this._scale * Math.sin(this._rotation)) + (this._verticies[i].y * this._scale * Math.cos(this._rotation))) + this._pos.y;
+  this.position = () => this._pos;
+  this.rotation = (r = this._rotation) => this._rotation = r;
+  this.scale = () => this._scale;
+  this.draw = () => { image(crateImage, -1, -1, 2, 2); };
+  this.aabb = (tolerance = 0.2) => {
+    let minX = worldX(0);
+    let maxX = minX;
+    let minY = worldY(0);
+    let maxY = minY;
+    for (let i = 1; i < this._verticies.length; i++) {
+      const x = worldX(i);
+      const y = worldY(i);
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
     }
+    return [
+      createVector(minX - tolerance, minY - tolerance),
+      createVector(maxX + tolerance, maxY + tolerance)];
   };
-};
+  this.triangles = (observer) => {
+    for (let i = 0; i < this._indicies.length - 2; i += 3) {
+      observer(
+        worldX(this._indicies[i]),
+        worldY(this._indicies[i]),
+        worldX(this._indicies[i + 1]),
+        worldY(this._indicies[i + 1]),
+        worldX(this._indicies[i + 2]),
+        worldY(this._indicies[i + 2])
+      );
+    };
+  };
+
+  return this;
+}
 
 function setup() {
   createCanvas(480, 480);
-  hulls = [convexHull(createVector(240, 240), 50, PI / 6)];
+  hulls = [new ConvexHull(createVector(240, 240), 50, PI / 6)];
   crateImage = loadImage("crate.jpg");
 }
 
@@ -70,13 +68,14 @@ function draw() {
   background(200);
   hulls.forEach(h => {
 
-    var s= h.rotation(h.rotation()+0.01)
+    var s = h.rotation(h.rotation() + 0.01)
 
     if (showModel) {
       push();
-      translate(this.pos.x, this.pos.y);
-      rotate(this.rotation);
-      scale(this.scale_);
+      const pos = h.position();
+      translate(pos.x, pos.y);
+      rotate(h.rotation());
+      scale(h.scale());
       h.draw();
       pop();
     }
