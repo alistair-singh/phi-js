@@ -59,7 +59,7 @@ function setup() {
     new ConvexHull(createVector(240, 240), 50, PI / 6),
     new ConvexHull(createVector(120, 120), 25, PI / 3),
     new ConvexHull(createVector(331, 170), 25, PI / 4),
-    new ConvexHull(createVector(332, 260), 25, PI / 9)];
+    new ConvexHull(createVector(330, 260), 25, PI / 9)];
   crateImage = loadImage("crate.jpg");
 }
 
@@ -91,9 +91,8 @@ function draw() {
     const aabb1 = h1.aabb(4);
     const aabb2 = h2.aabb(4);
 
-    if((aabb1[0].x < aabb2[0].x) || (aabb1[0].y < aabb2[0].y)) return -1;
-    if((aabb1[1].x > aabb2[1].x) || (aabb1[1].y > aabb2[1].y)) return 1;
-    return 0;
+    return (aabb1[0].x - aabb2[0].x) + (aabb1[0].y - aabb2[0].y)
+         + (aabb1[1].x - aabb2[1].x) + (aabb1[1].y - aabb2[1].y);
   });
 
   if (showModel) {
@@ -107,7 +106,6 @@ function draw() {
       h.draw();
       pop();
 
-      
       text("" + i, pos.x-5, pos.y+5);
     });
   };
@@ -135,25 +133,19 @@ function draw() {
   if (showAABBTree) {
     let i = 0;
     function drawTree(first, last) {
-
-
       const diff = last - first;
-      if (diff < 1) return;
 
-      const aabb = mergeAABB(hulls[first].aabb(4), hulls[last].aabb(4));
-      //drawAABB(aabb);
-      //console.log(i++, aabb[0].x, aabb[0].y, aabb[1].x, aabb[1].y);
+      if (diff == 1) 
+        return mergeAABB(hulls[first].aabb(4), hulls[last-1].aabb(4));
 
-      const half = first + Math.floor((diff) / 2);
-      if (half == last) return;
-      drawTree(first, half);
-      
-      if (half == first) return;
-      drawTree(half, last);
+      const half = first + Math.ceil(diff / 2);
+      const aabbRight = drawTree(first, half);
+      const aabbLeft = drawTree(half, last);
+      const merged = mergeAABB(aabbLeft, aabbRight);
+      drawAABB(merged);
+
+      return merged;
     }
-    drawTree(0, hulls.length - 1);
-
-    // const aabb = mergeAABB(hulls[0].aabb(4), hulls[hulls.length - 1].aabb(4));
-    // drawAABB(aabb);
+    drawTree(0, hulls.length);
   }
 }
