@@ -97,8 +97,8 @@ function draw() {
   });
 
   if (showModel) {
-    hulls.forEach(h => {
-      var s = h.rotation(h.rotation() + 0.01)
+    hulls.forEach((h,i) => {
+      h.rotation(h.rotation() + 0.01);
       push();
       const pos = h.position();
       translate(pos.x, pos.y);
@@ -106,6 +106,9 @@ function draw() {
       scale(h.scale());
       h.draw();
       pop();
+
+      
+      text("" + i, pos.x-5, pos.y+5);
     });
   };
 
@@ -138,8 +141,8 @@ function draw() {
       if (diff < 1) return;
 
       const aabb = mergeAABB(hulls[first].aabb(4), hulls[last].aabb(4));
-      drawAABB(aabb);
-      console.log(i++, aabb[0].x, aabb[0].y, aabb[1].x, aabb[1].y);
+      //drawAABB(aabb);
+      //console.log(i++, aabb[0].x, aabb[0].y, aabb[1].x, aabb[1].y);
 
       const half = first + Math.floor((diff) / 2);
       if (half == last) return;
