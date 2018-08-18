@@ -1,6 +1,77 @@
 
+function AABB(minX, minY, maxX, maxY) {
+  this.minX = minX || 0;
+  this.minY = minY || 0;
+  this.maxX = maxX || 0;
+  this.maxY = maxY || 0;
+  this.merge = function (other) {
+    return new AABB(
+      Math.min(this.minX, other.minX),
+      Math.min(this.minY, other.minY),
+      Math.max(this.maxX, other.maxX),
+      Math.max(this.maxY, other.maxY));
+  };
+  this.area = function () { return (this.maxX - this.minX) * (this.maxY - this.minY); }
+  this.manhattan = function () { return (this.minX + this.maxX) + (this.minY + this.maxY); }
+}
+
+function Tree(root) {
+  const NODE_EMPTY = 0;
+  const NODE_BRANCH = 1;
+  const NODE_LEAF = 2;
+
+  function Empty() {
+    this.type = NODE_EMPTY;
+    this.aabb = new AABB();
+  }
+  function Leaf(item) {
+    this.type = NODE_LEAF;
+    this.item = item;
+    this.aabb = item.aabb(4);
+  }
+  function Branch(left, right) {
+    this.type = NODE_BRANCH;
+    this.left = left || new Empty();
+    this.right = right || new Empty();
+    this.aabb = new AABB();
+
+    const rAABB = (right.type !== NODE_EMPTY ? right.aabb : left.aabb) || new AABB();
+    const lAABB = (left.type !== NODE_EMPTY ? left.aabb : right.aabb) || new AABB();
+    this.aabb = rAABB.merge(lAABB);
+  }
+
+  this.root = root || new Empty();
+  this.insert = function (item) {
+    switch (this.root.type) {
+      case NODE_EMPTY:
+        return new Tree(new Leaf(item));
+      case NODE_BRANCH:
+        return new Tree(new Branch(this.root, new Leaf(item)));
+      case NODE_LEAF:
+        return new Tree(new Branch(this.root, new Leaf(item)));
+    }
+  };
+  this.visit = function (visitor) {
+    function _visit(node) {
+      switch (node.type) {
+        case NODE_EMPTY: break;
+        case NODE_BRANCH:
+          _visit(node.left);
+          visitor(node);
+          _visit(node.right);
+          break;
+        case NODE_LEAF:
+          visitor(node);
+          break;
+      }
+    }
+    _visit(this.root);
+  };
+}
+
 var hulls;
 var crateImage;
+var tree;
 
 function ConvexHull(pos, scale, rotation, center, verticies, indicies) {
   this._pos = pos || createVector(0, 0);
@@ -35,9 +106,9 @@ function ConvexHull(pos, scale, rotation, center, verticies, indicies) {
       maxX = Math.max(maxX, x);
       maxY = Math.max(maxY, y);
     }
-    return [
-      createVector(minX - tolerance, minY - tolerance),
-      createVector(maxX + tolerance, maxY + tolerance)];
+    return new AABB(
+      minX - tolerance, minY - tolerance,
+      maxX + tolerance, maxY + tolerance);
   };
   this.triangles = (observer) => {
     for (let i = 0; i < this._indicies.length - 2; i += 3) {
@@ -60,6 +131,9 @@ function setup() {
     new ConvexHull(createVector(120, 120), 25, PI / 3),
     new ConvexHull(createVector(331, 170), 25, PI / 4),
     new ConvexHull(createVector(330, 260), 25, PI / 9)];
+
+  tree = new Tree();
+  hulls.forEach((h, i) => tree = tree.insert(h))
   crateImage = loadImage("crate.jpg");
 }
 
@@ -68,35 +142,18 @@ var showHull = true;
 var showAABB = true;
 var showAABBTree = true;
 function draw() {
-  function mergeAABB(aabb1, aabb2) {
-    const minX = Math.min(aabb1[0].x, aabb2[0].x);
-    const minY = Math.min(aabb1[0].y, aabb2[0].y);
-    const maxX = Math.max(aabb1[1].x, aabb2[1].x);
-    const maxY = Math.max(aabb1[1].y, aabb2[1].y);
-    return [
-      createVector(minX, minY),
-      createVector(maxX, maxY)];
-  };
   function drawAABB(aabb) {
-    line(aabb[0].x, aabb[0].y, aabb[0].x, aabb[1].y);
-    line(aabb[0].x, aabb[0].y, aabb[1].x, aabb[0].y);
+    line(aabb.minX, aabb.minY, aabb.minX, aabb.maxY);
+    line(aabb.minX, aabb.minY, aabb.maxX, aabb.minY);
 
-    line(aabb[1].x, aabb[0].y, aabb[1].x, aabb[1].y);
-    line(aabb[0].x, aabb[1].y, aabb[1].x, aabb[1].y);
+    line(aabb.maxX, aabb.minY, aabb.maxX, aabb.maxY);
+    line(aabb.minX, aabb.maxY, aabb.maxX, aabb.maxY);
   };
 
   background(200);
 
-  hulls.sort((h1, h2) => {
-    const aabb1 = h1.aabb(4);
-    const aabb2 = h2.aabb(4);
-
-    return (aabb1[0].x - aabb2[0].x) + (aabb1[0].y - aabb2[0].y)
-         + (aabb1[1].x - aabb2[1].x) + (aabb1[1].y - aabb2[1].y);
-  });
-
   if (showModel) {
-    hulls.forEach((h,i) => {
+    hulls.forEach((h, i) => {
       h.rotation(h.rotation() + 0.01);
       push();
       const pos = h.position();
@@ -106,7 +163,7 @@ function draw() {
       h.draw();
       pop();
 
-      text("" + i, pos.x-5, pos.y+5);
+      text("" + i, pos.x - 5, pos.y + 5);
     });
   };
 
@@ -131,21 +188,10 @@ function draw() {
   });
 
   if (showAABBTree) {
-    let i = 0;
-    function drawTree(first, last) {
-      const diff = last - first;
-
-      if (diff == 1) 
-        return mergeAABB(hulls[first].aabb(4), hulls[last-1].aabb(4));
-
-      const half = first + Math.ceil(diff / 2);
-      const aabbRight = drawTree(first, half);
-      const aabbLeft = drawTree(half, last);
-      const merged = mergeAABB(aabbLeft, aabbRight);
-      drawAABB(merged);
-
-      return merged;
-    }
-    drawTree(0, hulls.length);
+    tree = new Tree();
+    hulls.forEach((h, i) => tree = tree.insert(h))
+    tree.visit(t => {
+      if(t.type === 1) drawAABB(t.aabb);
+    });
   }
 }
